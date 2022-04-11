@@ -26,6 +26,28 @@ contract Fold is IFlashLoanReceiver {
         debtBnb = _debtBnb;
     }
 
+    function fold(address _token, uint256 _depositAmount, uint256 _loanAmount) external {
+        if (_depositAmount > 0) {
+            IERC20(_token).safeTransferFrom(msg.sender, address(this), _depositAmount);
+        }
+        _fold(_token, _depositAmount, _loanAmount);
+    }
+
+    function fold_bnb(uint256 _loanAmount) external payable {
+        if (msg.value > 0) {
+            wbnb.deposit{value: msg.value}();
+        }
+        _fold(address(wbnb), msg.value, _loanAmount);
+    }
+
+    function unfold(address _token, address _valToken, address _debtToken) external {
+        _unfold(_token, _valToken, _debtToken, 1);
+    }
+
+    function unfold_bnb() external {
+        _unfold(address(wbnb), valBnb, debtBnb, 2);
+    }
+
     receive() external payable {
         require(msg.sender == address(wbnb));
     }
@@ -50,20 +72,6 @@ contract Fold is IFlashLoanReceiver {
         pool.flashLoan(address(this), tokens, amounts, modes, msg.sender, abi.encode(msg.sender, _depositAmount.add(_loanAmount), uint256(0)), 0xF01D);
     }
 
-    function fold(address _token, uint256 _depositAmount, uint256 _loanAmount) external {
-        if (_depositAmount > 0) {
-            IERC20(_token).safeTransferFrom(msg.sender, address(this), _depositAmount);
-        }
-        _fold(_token, _depositAmount, _loanAmount);
-    }
-
-    function fold_bnb(uint256 _loanAmount) external payable {
-        if (msg.value > 0) {
-            wbnb.deposit{value: msg.value}();
-        }
-        _fold(address(wbnb), msg.value, _loanAmount);
-    }
-
     function _unfold(address _token, address _valToken, address _debtToken, uint256 flag) internal {
         uint256 debt = IERC20(_debtToken).balanceOf(msg.sender);
         require(debt > 0);
@@ -78,14 +86,7 @@ contract Fold is IFlashLoanReceiver {
         pool.flashLoan(address(this), tokens, amounts, modes, msg.sender, abi.encode(msg.sender, uint256(_valToken), flag), 0xF01E);
     }
 
-    function unfold(address _token, address _valToken, address _debtToken) external {
-        _unfold(_token, _valToken, _debtToken, 1);
-    }
-
-    function unfold_bnb() external {
-        _unfold(address(wbnb), valBnb, debtBnb, 2);
-    }
-
+    // IFlashLoanReceiver functions
     function executeOperation(
         address[] calldata assets,
         uint256[] calldata amounts,
