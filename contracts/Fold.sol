@@ -55,7 +55,7 @@ contract Fold is IFlashLoanReceiver {
     function _approve(address _token) internal {
         IERC20 token = IERC20(_token);
         if (token.allowance(address(this), address(pool)) == 0) {
-            token.approve(address(pool), uint256(-1));
+            token.safeApprove(address(pool), uint256(-1));
         }
     }
 
